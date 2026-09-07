@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>寧波公學歷史科 DSE 資料庫</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 :root {
   --bg:#f3f6f7;
@@ -293,6 +294,115 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
   line-height:1.55;
 }
 
+
+.reader-tools{
+  position:sticky;
+  top:12px;
+  z-index:25;
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  align-items:center;
+  margin:10px 0 14px;
+  padding:9px;
+  background:rgba(255,255,255,.95);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(23,52,75,.05);
+  backdrop-filter:blur(8px);
+}
+.reader-tools .tool-label{
+  font-size:12px;
+  font-weight:900;
+  color:var(--muted);
+  margin-right:2px;
+}
+.reader-tools button{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:9px;
+  padding:8px 10px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:800;
+}
+.reader-tools button.active{
+  background:var(--navy);
+  color:#fff;
+  border-color:var(--navy);
+}
+
+.reader-tools .peelToggle{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#fff;
+  color:var(--ink);
+}
+.reader-tools .peelToggle.active{
+  background:#fff;
+  color:var(--ink);
+  border-color:#aebfc9;
+  box-shadow:inset 0 0 0 1px rgba(23,76,112,.04);
+}
+.reader-tools .peelToggle:not(.active){
+  background:#f4f6f7;
+  color:#8a969f;
+  opacity:.78;
+}
+.reader-tools .dot{
+  display:inline-block;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:1px solid rgba(0,0,0,.08);
+}
+.reader-tools .dot.p{background:var(--p)}
+.reader-tools .dot.ev{background:var(--ev)}
+.reader-tools .dot.ex{background:var(--ex)}
+.reader-tools .dot.ln{background:var(--ln)}
+.reader-tools .toggle-state{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.reader-tools .peelToggle.active .toggle-state{
+  color:var(--green);
+}
+.reader-tools .peelToggle:not(.active) .toggle-state{
+  color:#909aa2;
+}
+
+.reader-tools .student-highlight-btn{
+  background:#dff2ff;
+}
+.reader-tools .student-highlight-clear{
+  background:#f7f7f7;
+}
+.reader-tools .share-btn{
+  background:var(--soft-green);
+}
+.student-mark{
+  background:#bfe7ff !important;
+  border-bottom:2px solid #4ca6d9;
+}
+.capture-wrap{
+  background:#fff;
+}
+.peel-hidden{
+  background:transparent !important;
+}
+@media(max-width:850px){
+  .reader-tools{
+    top:6px;
+    overflow-x:auto;
+    flex-wrap:nowrap;
+  }
+  .reader-tools button,.reader-tools .tool-label{
+    flex:0 0 auto;
+  }
+}
+
 .footer{
   margin-top:18px;
   text-align:center;
@@ -412,8 +522,35 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
         <span class="ev">Evidence 史實</span>
         <span class="ex">Explanation 解釋</span>
         <span class="ln">Link 扣題</span>
+        <span class="student-mark">我的臨時標示</span>
       </div>
-      <div id="questions"></div>
+
+      <div class="reader-tools" id="readerTools">
+        <span class="tool-label">PEEL 顯示</span>
+
+        <button class="peelToggle peel-p active" data-target="p" aria-pressed="true">
+          <span class="dot p"></span> Point <span class="toggle-state">● ON</span>
+        </button>
+
+        <button class="peelToggle peel-ev active" data-target="ev" aria-pressed="true">
+          <span class="dot ev"></span> Evidence <span class="toggle-state">● ON</span>
+        </button>
+
+        <button class="peelToggle peel-ex active" data-target="ex" aria-pressed="true">
+          <span class="dot ex"></span> Explanation <span class="toggle-state">● ON</span>
+        </button>
+
+        <button class="peelToggle peel-ln active" data-target="ln" aria-pressed="true">
+          <span class="dot ln"></span> Link <span class="toggle-state">● ON</span>
+        </button>
+
+        <span class="tool-label">我的筆記</span>
+        <button class="student-highlight-btn" id="readerHighlight">Highlight</button>
+        <button class="student-highlight-clear" id="readerClearHighlight">清除 Highlight</button>
+        <button class="share-btn" id="captureShare">截圖／分享</button>
+      </div>
+
+      <div id="questions" class="capture-wrap"></div>
     </div>
   </div>
 </section>
@@ -643,18 +780,161 @@ window.openCat = async function(c) {
       <div class="meta">${escapeHtml(x.qtype)}｜${escapeHtml(x.author)}｜AI：${escapeHtml(x.source)}</div>
       <div class="qt">${escapeHtml(x.question)}</div>
       <div class="ans">${x.answer_html}</div>
-      <br>
-      <button class="btn secondary toggle">隱藏 PEEL 顏色</button>
     </div>
   `).join("") : '<div class="empty">這個主題暫時未有答案。</div>';
 
-  box.querySelectorAll(".toggle").forEach(btn => btn.onclick = () => {
-    const spans = btn.closest(".q").querySelectorAll(".ans span");
-    const hidden = [...spans][0]?.style.backgroundColor === "transparent";
-    spans.forEach(s => s.style.backgroundColor = hidden ? "" : "transparent");
-    btn.textContent = hidden ? "隱藏 PEEL 顏色" : "顯示 PEEL 顏色";
+  applyPeelVisibility();
+};
+
+
+
+const peelVisibility = {
+  p: true,
+  ev: true,
+  ex: true,
+  ln: true
+};
+
+function applyPeelVisibility() {
+  const root = document.getElementById("questions");
+  if(!root) return;
+
+  Object.entries(peelVisibility).forEach(([cls, visible]) => {
+    root.querySelectorAll(`.ans span.${cls}`).forEach(el => {
+      el.classList.toggle("peel-hidden", !visible);
+    });
+  });
+
+  document.querySelectorAll(".peelToggle").forEach(btn => {
+    const key = btn.dataset.target;
+    const on = !!peelVisibility[key];
+
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+
+    const state = btn.querySelector(".toggle-state");
+    if(state) state.textContent = on ? "● ON" : "○ OFF";
+  });
+}
+
+document.querySelectorAll(".peelToggle").forEach(btn => {
+  btn.onclick = () => {
+    const key = btn.dataset.target;
+    peelVisibility[key] = !peelVisibility[key];
+    applyPeelVisibility();
+  };
+});
+
+
+function addTemporaryReaderHighlight() {
+  const sel = window.getSelection();
+
+  if(!sel.rangeCount || sel.isCollapsed) {
+    alert("請先在佳作中選取想標示的文字。");
+    return;
+  }
+
+  const range = sel.getRangeAt(0);
+  const questions = document.getElementById("questions");
+
+  if(!questions.contains(range.commonAncestorContainer)) {
+    alert("請在佳作內容中選取文字。");
+    return;
+  }
+
+  const span = document.createElement("span");
+  span.className = "student-mark";
+  span.dataset.temporary = "true";
+
+  try {
+    range.surroundContents(span);
+  } catch(e) {
+    const frag = range.extractContents();
+    span.appendChild(frag);
+    range.insertNode(span);
+  }
+
+  sel.removeAllRanges();
+}
+
+document.getElementById("readerHighlight").onclick =
+  addTemporaryReaderHighlight;
+
+document.getElementById("readerClearHighlight").onclick = () => {
+  const root = document.getElementById("questions");
+
+  root.querySelectorAll('span.student-mark[data-temporary="true"]').forEach(span => {
+    const parent = span.parentNode;
+    while(span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+    parent.normalize();
   });
 };
+
+async function captureCurrentAnswerPage() {
+  const target = document.getElementById("questions");
+
+  if(!target || !target.textContent.trim()) {
+    alert("目前沒有可截圖的答案。");
+    return null;
+  }
+
+  const canvas = await html2canvas(target, {
+    backgroundColor: "#ffffff",
+    scale: Math.min(window.devicePixelRatio || 1, 2),
+    useCORS: true,
+    logging: false
+  });
+
+  return new Promise(resolve => {
+    canvas.toBlob(blob => resolve(blob), "image/png", 0.95);
+  });
+}
+
+document.getElementById("captureShare").onclick = async () => {
+  const btn = document.getElementById("captureShare");
+  const oldText = btn.textContent;
+  btn.textContent = "製作圖片中…";
+  btn.disabled = true;
+
+  try {
+    const blob = await captureCurrentAnswerPage();
+    if(!blob) return;
+
+    const file = new File(
+      [blob],
+      "history-dse-model-answer.png",
+      {type:"image/png"}
+    );
+
+    if(navigator.canShare && navigator.canShare({files:[file]})) {
+      await navigator.share({
+        title:"寧波公學歷史科 DSE 資料庫",
+        text:"我的歷史科佳作分析",
+        files:[file]
+      });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "history-dse-model-answer.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+      alert("此瀏覽器未支援直接分享檔案，圖片已下載。你可以把 PNG 附加到 Gmail。");
+    }
+  } catch(e) {
+    if(e && e.name !== "AbortError") {
+      alert("截圖／分享失敗：" + e.message);
+    }
+  } finally {
+    btn.textContent = oldText;
+    btn.disabled = false;
+  }
+};
+
 
 document.getElementById("back").onclick = home;
 document.getElementById("searchBtn").onclick = () =>
