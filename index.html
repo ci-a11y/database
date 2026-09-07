@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>歷史科高階題資料庫</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f3f5f6;--card:#fff;--ink:#24313b;--muted:#6f7a83;--line:#d8dee3;--nav:#234a64;--p:#ffd6d6;--ev:#fff0a8;--ex:#d8f0d2;--ln:#f5d3e5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Microsoft JhengHei",sans-serif;color:var(--ink)}
+.app{max-width:1180px;margin:auto;padding:22px}
+header{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+h1{margin:0;font-size:28px}.sub{color:var(--muted);margin-top:6px;font-size:14px}
+.cloud{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:#fff}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+nav button,.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+nav button.active,.primary{background:var(--nav)!important;color:#fff;border-color:var(--nav)!important}
+.panel{display:none}.panel.active{display:block}
+.section{background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.cat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;cursor:pointer}
+.cat:hover{border-color:#9fb4c1}
+.n{font-size:12px;color:var(--muted)}.name{font-size:17px;font-weight:800;line-height:1.45;margin-top:6px}
+.count{font-size:12px;color:var(--muted);margin-top:10px}
+.search{display:flex;gap:8px;margin-bottom:14px}
+input,select,textarea{width:100%;border:1px solid #cad3d9;border-radius:9px;padding:10px;font:inherit}
+textarea{min-height:110px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;font-weight:800;margin:10px 0 6px}
+.q{background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px;margin:10px 0}
+.meta{font-size:12px;color:var(--muted)}.qt{font-weight:800;line-height:1.55;margin-top:5px}
+.ans{line-height:1.9;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.legend,.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.legend span,.toolbar button{padding:6px 9px;border-radius:8px;border:1px solid #ddd;font-weight:800;font-size:12px}
+.p{background:var(--p)}.ev{background:var(--ev)}.ex{background:var(--ex)}.ln{background:var(--ln)}
+.editor{min-height:240px;border:1px solid #cdd6dc;border-radius:10px;padding:14px;line-height:1.9;white-space:pre-wrap;background:#fff}
+.prompt{white-space:pre-wrap;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+.bread{font-size:13px;color:var(--muted);margin-bottom:10px}
+.bread button{border:0;background:none;color:#315f7d;cursor:pointer}
+.empty{padding:18px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:12px}
+.note{padding:11px;background:#eef5f8;border:1px solid #ccdfe8;border-radius:10px;line-height:1.55;font-size:13px}
+.loginbox{max-width:460px}
+.status{font-size:12px;color:var(--muted);margin-top:8px}
+.danger{background:#fff1f1!important}
+.setup{background:#fff8dd;border:1px solid #e6d69a;border-radius:12px;padding:12px;line-height:1.6;font-size:13px;margin-bottom:12px}
+code{background:#f0f2f3;padding:2px 5px;border-radius:5px}
+@media(max-width:760px){.grid,.row{grid-template-columns:1fr}header{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div>
+    <h1>歷史科高階題資料庫</h1>
+    <div class="sub">按課程主題整理 Essay / DBQ(c) 題目及 PEEL Model Answers</div>
+  </div>
+  <div class="cloud" id="cloudStatus">檢查雲端連線中…</div>
+</header>
+
+<nav>
+  <button class="active" data-tab="db">答題庫</button>
+  <button data-tab="submit">提交答案</button>
+  <button data-tab="prompt">AI 提問指示</button>
+  <button data-tab="review">老師審核</button>
+</nav>
+
+<section id="db" class="panel active">
+  <div id="setupNotice" class="setup" style="display:none">
+    尚未設定 Supabase。請在本 HTML 最底部的 <code>SUPABASE_URL</code>、<code>SUPABASE_ANON_KEY</code>、<code>TEACHER_EMAIL</code> 三個位置填入資料。
+  </div>
+
+  <div id="home">
+    <div class="search">
+      <input id="search" placeholder="搜尋題目或關鍵字……">
+      <button class="btn primary" id="searchBtn">搜尋</button>
+    </div>
+    <div id="catGrid" class="grid"></div>
+  </div>
+
+  <div id="catView" style="display:none">
+    <div class="bread"><button id="back">答題庫</button> / <span id="catName"></span></div>
+    <div class="legend">
+      <span class="p">Point 論點</span>
+      <span class="ev">Evidence 史實</span>
+      <span class="ex">Explanation 解釋</span>
+      <span class="ln">Link 扣題</span>
+    </div>
+    <div id="questions"></div>
+  </div>
+</section>
+
+<section id="submit" class="panel">
+  <div class="section">
+    <h2>提交 Model Answer</h2>
+    <div class="note">學生先完成題目，再使用外部 AI 生成參考答案。把答案貼到網站後，自行以四色標示 PEEL，再提交給老師審核。獲批准後，全班都會在答題庫中看到。</div>
+
+    <div class="row">
+      <div>
+        <label>課程主題</label>
+        <select id="category"></select>
+      </div>
+      <div>
+        <label>題型</label>
+        <select id="type"><option>Essay</option><option>DBQ(c)</option></select>
+      </div>
+    </div>
+
+    <label>題目</label>
+    <textarea id="question"></textarea>
+
+    <div class="row">
+      <div>
+        <label>班別／署名</label>
+        <input id="author" placeholder="例如：5D 匿名同學">
+      </div>
+      <div>
+        <label>答案來源</label>
+        <select id="source"><option>ChatGPT</option><option>Gemini</option><option>其他 AI</option></select>
+      </div>
+    </div>
+
+    <label>貼上 AI 生成的答案</label>
+    <textarea id="raw"></textarea>
+    <button class="btn primary" id="load">進入 PEEL 標示</button>
+
+    <div class="toolbar">
+      <button class="p" data-mark="p">Point｜紅</button>
+      <button class="ev" data-mark="ev">Evidence｜黃</button>
+      <button class="ex" data-mark="ex">Explanation｜綠</button>
+      <button class="ln" data-mark="ln">Link｜粉紅</button>
+      <button id="clear">清除標示</button>
+    </div>
+
+    <div id="editor" class="editor" contenteditable="true"></div>
+    <br>
+    <button class="btn primary" id="send">提交給老師審核</button>
+  </div>
+</section>
+
+<section id="prompt" class="panel">
+  <div class="section">
+    <h2>AI 提問指示</h2>
+    <div id="promptText" class="prompt">你是一名香港中學歷史科答題助手。
+
+請根據我提供的題目、課堂資料及答題要求，生成一份歷史科參考答案。
+
+【重要規則】
+1. 只可以使用我提供的課堂資料，不可自行加入未提供的歷史史實。
+2. 答案必須直接回應題目。
+3. 每一段都必須有完整論證，而不是只列舉史實。
+4. 每段應包含 Point、Evidence、Explanation、Link。
+5. Explanation 是最重要的部分，必須清楚說明史實如何支持論點。
+6. 如屬評價題，須包括清楚立場、支持論據、反方／限制、比較及最終判斷。
+7. 使用正式繁體中文書面語。
+8. 不要在答案中寫出 Point、Evidence、Explanation、Link 等標題。
+9. 請寫成正常、完整、連貫的歷史論述文章。
+
+【題目】
+［貼上題目］
+
+【課堂資料】
+［貼上老師提供的資料］
+
+【老師指定答題方向】
+［如有，貼上指定方向］</div>
+    <br>
+    <button class="btn primary" id="copy">複製提問指示</button>
+  </div>
+</section>
+
+<section id="review" class="panel">
+  <div class="section">
+    <h2>老師審核</h2>
+
+    <div id="teacherLoggedOut" class="loginbox">
+      <div class="note">老師審核需要登入 Supabase 教師帳戶。學生不需要登入即可提交答案。</div>
+      <label>教師電郵</label>
+      <input id="teacherEmail" type="email">
+      <label>密碼</label>
+      <input id="teacherPassword" type="password">
+      <br>
+      <button class="btn primary" id="loginBtn">登入</button>
+      <div class="status" id="loginStatus"></div>
+    </div>
+
+    <div id="teacherLoggedIn" style="display:none">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <div id="teacherIdentity" class="status"></div>
+        <button class="btn" id="logoutBtn">登出</button>
+      </div>
+      <div id="reviewList" style="margin-top:12px"></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* =========================================================
+   只需要改以下 3 行，整個網站仍然只有一個 HTML
+   ========================================================= */
+const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
+const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+const TEACHER_EMAIL = "PASTE_YOUR_TEACHER_EMAIL_HERE";
+
+/* ========================================================= */
+
+const CATS = ["二十世紀初的歐洲：衝突與和平", "兩戰期間及集體安全系統的嘗試", "冷戰時期的陣營對抗及東歐變天", "歐洲經濟統合", "聯合國及其他國際協作", "二十世紀的香港發展", "二十世紀的中國發展", "二十世紀的日本發展"];
+
+let sb = null;
+
+function isConfigured() {
+  return SUPABASE_URL &&
+         !SUPABASE_URL.includes("PASTE_") &&
+         SUPABASE_ANON_KEY &&
+         !SUPABASE_ANON_KEY.includes("PASTE_");
+}
+
+if (isConfigured()) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  document.getElementById("cloudStatus").textContent = "Online Database｜Supabase";
+} else {
+  document.getElementById("cloudStatus").textContent = "尚未設定 Supabase";
+  document.getElementById("setupNotice").style.display = "";
+}
+
+const catSel = document.getElementById("category");
+catSel.innerHTML = CATS.map(c => `<option>${c}</option>`).join("");
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = async () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  document.getElementById(b.dataset.tab).classList.add("active");
+
+  if (b.dataset.tab === "db") await home();
+  if (b.dataset.tab === "review") await syncTeacherUi();
+});
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
+function escapeJs(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+async function fetchApproved() {
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("answers")
+    .select("*")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    alert("讀取雲端資料失敗：" + error.message);
+    return [];
+  }
+  return data || [];
+}
+
+async function home() {
+  document.getElementById("home").style.display = "";
+  document.getElementById("catView").style.display = "none";
+  await renderCats();
+}
+
+async function renderCats(filter = "") {
+  const all = await fetchApproved();
+  const grid = document.getElementById("catGrid");
+
+  if (!isConfigured()) {
+    grid.innerHTML = '<div class="empty">請先在 HTML 內填入 Supabase URL 與 anon key。</div>';
+    return;
+  }
+
+  if (filter) {
+    const f = filter.toLowerCase();
+    const matches = all.filter(x =>
+      (x.question + " " + x.category + " " + x.qtype).toLowerCase().includes(f)
+    );
+
+    grid.innerHTML = matches.length
+      ? matches.map(x => `
+          <div class="cat" onclick="openCat('${escapeJs(x.category)}')">
+            <div class="n">${escapeHtml(x.qtype)}</div>
+            <div class="name">${escapeHtml(x.question)}</div>
+            <div class="count">${escapeHtml(x.category)}</div>
+          </div>
+        `).join("")
+      : '<div class="empty">找不到相關題目。</div>';
+    return;
+  }
+
+  grid.innerHTML = CATS.map((c, i) => `
+    <div class="cat" onclick="openCat('${escapeJs(c)}')">
+      <div class="n">${String(i+1).padStart(2,"0")}</div>
+      <div class="name">${c}</div>
+      <div class="count">${all.filter(x => x.category === c).length} 份參考答案</div>
+    </div>
+  `).join("");
+}
+
+window.openCat = async function(c) {
+  document.getElementById("home").style.display = "none";
+  document.getElementById("catView").style.display = "";
+  document.getElementById("catName").textContent = c;
+
+  const items = (await fetchApproved()).filter(x => x.category === c);
+  const box = document.getElementById("questions");
+
+  box.innerHTML = items.length
+    ? items.map(x => `
+        <div class="q">
+          <div class="meta">${escapeHtml(x.qtype)}｜${escapeHtml(x.author)}｜來源：${escapeHtml(x.source)}</div>
+          <div class="qt">${escapeHtml(x.question)}</div>
+          <div class="ans">${x.answer_html}</div>
+          <br>
+          <button class="btn toggle">隱藏 PEEL 顏色</button>
+        </div>
+      `).join("")
+    : '<div class="empty">這個主題暫時未有答案。</div>';
+
+  box.querySelectorAll(".toggle").forEach(btn => btn.onclick = () => {
+    const spans = btn.closest(".q").querySelectorAll(".ans span");
+    const hidden = [...spans][0]?.style.backgroundColor === "transparent";
+    spans.forEach(s => s.style.backgroundColor = hidden ? "" : "transparent");
+    btn.textContent = hidden ? "隱藏 PEEL 顏色" : "顯示 PEEL 顏色";
+  });
+};
+
+document.getElementById("back").onclick = home;
+document.getElementById("searchBtn").onclick = () =>
+  renderCats(document.getElementById("search").value);
+
+document.getElementById("load").onclick = () => {
+  document.getElementById("editor").textContent =
+    document.getElementById("raw").value;
+};
+
+function markSelection(cls) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) {
+    alert("請先選取文字。");
+    return;
+  }
+
+  const range = sel.getRangeAt(0);
+  const editor = document.getElementById("editor");
+
+  if (!editor.contains(range.commonAncestorContainer)) {
+    alert("請在答案標示區內選取文字。");
+    return;
+  }
+
+  const span = document.createElement("span");
+  span.className = cls;
+
+  try {
+    range.surroundContents(span);
+  } catch (e) {
+    const frag = range.extractContents();
+    span.appendChild(frag);
+    range.insertNode(span);
+  }
+
+  sel.removeAllRanges();
+}
+
+document.querySelectorAll("[data-mark]").forEach(b =>
+  b.onclick = () => markSelection(b.dataset.mark)
+);
+
+document.getElementById("clear").onclick = () => {
+  const editor = document.getElementById("editor");
+
+  editor.querySelectorAll("span.p,span.ev,span.ex,span.ln").forEach(s => {
+    const p = s.parentNode;
+    while (s.firstChild) p.insertBefore(s.firstChild, s);
+    p.removeChild(s);
+    p.normalize();
+  });
+};
+
+document.getElementById("send").onclick = async () => {
+  if (!sb) {
+    alert("網站尚未連接 Supabase。");
+    return;
+  }
+
+  const editor = document.getElementById("editor");
+
+  if (!editor.textContent.trim()) {
+    alert("請先貼上答案。");
+    return;
+  }
+
+  if (!editor.querySelector("span.p,span.ev,span.ex,span.ln")) {
+    alert("請先完成 PEEL 標示。");
+    return;
+  }
+
+  const payload = {
+    category: catSel.value,
+    qtype: document.getElementById("type").value,
+    question: document.getElementById("question").value.trim(),
+    author: document.getElementById("author").value.trim() || "匿名同學",
+    source: document.getElementById("source").value,
+    status: "pending",
+    answer_html: editor.innerHTML
+  };
+
+  const { error } = await sb.from("answers").insert(payload);
+
+  if (error) {
+    alert("提交失敗：" + error.message);
+    return;
+  }
+
+  alert("已上載至雲端，等待老師審核。");
+  document.getElementById("raw").value = "";
+  editor.innerHTML = "";
+};
+
+async function syncTeacherUi() {
+  if (!sb) {
+    document.getElementById("loginStatus").textContent = "尚未設定 Supabase。";
+    return;
+  }
+
+  const { data: { session } } = await sb.auth.getSession();
+  const logged = !!session;
+
+  document.getElementById("teacherLoggedOut").style.display = logged ? "none" : "";
+  document.getElementById("teacherLoggedIn").style.display = logged ? "" : "none";
+
+  if (logged) {
+    document.getElementById("teacherIdentity").textContent =
+      "已登入：" + session.user.email;
+    await renderReview();
+  }
+}
+
+document.getElementById("loginBtn").onclick = async () => {
+  if (!sb) return;
+
+  const email = document.getElementById("teacherEmail").value.trim();
+  const password = document.getElementById("teacherPassword").value;
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    document.getElementById("loginStatus").textContent =
+      "登入失敗：" + error.message;
+    return;
+  }
+
+  await syncTeacherUi();
+};
+
+document.getElementById("logoutBtn").onclick = async () => {
+  await sb.auth.signOut();
+  await syncTeacherUi();
+};
+
+async function renderReview() {
+  const { data: rows, error } = await sb
+    .from("answers")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  const box = document.getElementById("reviewList");
+
+  if (error) {
+    box.innerHTML = `<div class="empty">讀取失敗：${escapeHtml(error.message)}</div>`;
+    return;
+  }
+
+  box.innerHTML = rows.length
+    ? rows.map(x => `
+        <div class="q" data-id="${x.id}">
+          <div class="meta">${escapeHtml(x.category)}｜${escapeHtml(x.author)}｜${escapeHtml(x.source)}</div>
+          <div class="qt">${escapeHtml(x.question)}</div>
+          <div class="ans">${x.answer_html}</div>
+          <br>
+          <button class="btn primary ok">批准加入答題庫</button>
+          <button class="btn danger no">刪除</button>
+        </div>
+      `).join("")
+    : '<div class="empty">目前沒有待審核答案。</div>';
+
+  box.querySelectorAll(".ok").forEach(btn => btn.onclick = async () => {
+    const id = btn.closest(".q").dataset.id;
+
+    const { error } = await sb
+      .from("answers")
+      .update({
+        status: "approved",
+        approved_at: new Date().toISOString()
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await renderReview();
+  });
+
+  box.querySelectorAll(".no").forEach(btn => btn.onclick = async () => {
+    const id = btn.closest(".q").dataset.id;
+
+    const { error } = await sb.from("answers").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await renderReview();
+  });
+}
+
+document.getElementById("copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(
+      document.getElementById("promptText").innerText
+    );
+    alert("已複製。");
+  } catch (e) {
+    alert("請手動複製。");
+  }
+};
+
+if (isConfigured()) {
+  home();
+} else {
+  document.getElementById("catGrid").innerHTML =
+    '<div class="empty">尚未設定 Supabase。填好 HTML 底部的三項設定後即可使用。</div>';
+}
+</script>
+
+<!--
+=========================================================
+SUPABASE 首次設定 SQL
+只需要在 Supabase SQL Editor 執行一次。
+記得把 YOUR_TEACHER_EMAIL 改成你的教師電郵。
+=========================================================
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.answers (
+  id uuid primary key default gen_random_uuid(),
+  category text not null,
+  qtype text not null check (qtype in ('Essay','DBQ(c)')),
+  question text not null,
+  author text not null default '匿名同學',
+  source text not null default 'ChatGPT',
+  status text not null default 'pending'
+    check (status in ('pending','approved')),
+  answer_html text not null,
+  created_at timestamptz not null default now(),
+  approved_at timestamptz
+);
+
+alter table public.answers enable row level security;
+
+drop policy if exists "public read approved answers" on public.answers;
+create policy "public read approved answers"
+on public.answers
+for select
+to anon, authenticated
+using (
+  status = 'approved'
+  OR (
+    auth.role() = 'authenticated'
+    and auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
+  )
+);
+
+drop policy if exists "public insert pending answers" on public.answers;
+create policy "public insert pending answers"
+on public.answers
+for insert
+to anon, authenticated
+with check (status = 'pending');
+
+drop policy if exists "teacher update answers" on public.answers;
+create policy "teacher update answers"
+on public.answers
+for update
+to authenticated
+using (
+  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
+)
+with check (
+  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
+);
+
+drop policy if exists "teacher delete answers" on public.answers;
+create policy "teacher delete answers"
+on public.answers
+for delete
+to authenticated
+using (
+  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
+);
+
+create index if not exists answers_status_idx
+on public.answers(status);
+
+create index if not exists answers_category_idx
+on public.answers(category);
+
+=========================================================
+-->
+
+</body>
+</html>
