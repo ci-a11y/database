@@ -460,6 +460,226 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
   text-align:center;
 }
 
+
+.print-area{display:none}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 15mm 16mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background:#fff !important;
+    color:#18334a !important;
+  }
+
+  body > .app > * {
+    display:none !important;
+  }
+
+  body > .app > #printArea {
+    display:block !important;
+  }
+
+  .print-area {
+    display:block !important;
+    width:auto !important;
+    margin:0 !important;
+    padding:0 !important;
+    background:#fff !important;
+  }
+
+  .print-doc-header {
+    border-bottom:2px solid #174c70;
+    padding-bottom:8mm;
+    margin-bottom:8mm;
+  }
+
+  .print-doc-title {
+    font-size:18pt;
+    font-weight:900;
+    line-height:1.45;
+    margin:0 0 2mm;
+  }
+
+  .print-doc-subtitle {
+    font-size:9.5pt;
+    color:#6b7c89;
+  }
+
+  .print-legend {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4mm;
+    margin:0 0 7mm;
+    font-size:8.5pt;
+    font-weight:800;
+  }
+
+  .print-legend span {
+    padding:1.5mm 2.5mm;
+    border-radius:2mm;
+    border:0.2mm solid rgba(0,0,0,.08);
+  }
+
+  .print-card {
+    margin:0 0 10mm;
+  }
+
+  .print-card + .print-card {
+    border-top:0.3mm solid #d8e2e6;
+    padding-top:8mm;
+  }
+
+  .print-question {
+    font-size:13.5pt;
+    font-weight:900;
+    line-height:1.55;
+    margin:0 0 2mm;
+    break-after:avoid;
+    page-break-after:avoid;
+  }
+
+  .print-meta {
+    font-size:8.5pt;
+    color:#6b7c89;
+    margin-bottom:5mm;
+    break-after:avoid;
+    page-break-after:avoid;
+  }
+
+  .print-question-images{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:5mm;
+    margin:0 0 6mm;
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .print-question-images img{
+    width:100%;
+    height:auto;
+    max-height:115mm;
+    object-fit:contain;
+    border:0.25mm solid #d8e2e6;
+    border-radius:2mm;
+  }
+
+  .print-answer {
+    font-size:11.2pt;
+    line-height:1.95;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    text-align:justify;
+    text-justify:inter-ideograph;
+    orphans:3;
+    widows:3;
+  }
+
+  .print-answer span {
+    box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;
+  }
+
+  .print-footer {
+    margin-top:10mm;
+    padding-top:4mm;
+    border-top:0.3mm solid #d8e2e6;
+    text-align:center;
+    color:#87949d;
+    font-size:8pt;
+  }
+
+  .peel-hidden {
+    background:transparent !important;
+  }
+
+  .student-mark {
+    background:#bfe7ff !important;
+    border-bottom:1px solid #4ca6d9 !important;
+  }
+}
+
+
+.question-upload{
+  margin-top:8px;
+  border:1px dashed #b9ccd7;
+  background:#f8fbfc;
+  border-radius:12px;
+  padding:12px;
+}
+.question-upload input[type="file"]{
+  background:#fff;
+}
+.upload-note{
+  margin-top:7px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.55;
+}
+.image-preview-grid,
+.question-image-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-top:10px;
+}
+.image-preview-item,
+.question-image-item{
+  position:relative;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+}
+.image-preview-item img,
+.question-image-item img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:360px;
+  object-fit:contain;
+  background:#fff;
+}
+.image-preview-item .img-name{
+  padding:6px 8px;
+  font-size:10px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.question-image-item a{
+  display:block;
+  cursor:zoom-in;
+}
+.upload-progress{
+  display:none;
+  margin-top:8px;
+  font-size:12px;
+  font-weight:800;
+  color:var(--navy);
+}
+@media(max-width:700px){
+  .image-preview-grid,
+  .question-image-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:460px){
+  .image-preview-grid,
+  .question-image-grid{
+    grid-template-columns:1fr;
+  }
+}
+
 .footer{
   margin-top:18px;
   text-align:center;
@@ -605,6 +825,7 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
         <button class="student-highlight-btn" id="readerHighlight">Highlight</button>
         <button class="student-highlight-clear" id="readerClearHighlight">清除 Highlight</button>
         <button class="share-btn" id="captureShare">截圖／分享</button>
+        <button class="share-btn" id="exportPdf">生成 PDF</button>
       </div>
 
       <div id="questions" class="capture-wrap"></div>
@@ -631,7 +852,22 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
     </div>
 
     <label>題目</label>
-    <textarea id="question" placeholder="貼上完整題目……"></textarea>
+    <textarea id="question" placeholder="貼上完整題目……；如題目主要以圖片呈現，可填寫簡短題目名稱或題號。"></textarea>
+
+    <label>題目／資料圖片（選填）</label>
+    <div class="question-upload">
+      <input
+        id="questionImages"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+      >
+      <div class="upload-note">
+        可上載 DBQ 題目、史料、地圖、漫畫、圖表等圖片。每次最多 6 張；每張不超過 8 MB。建議使用 JPG、PNG 或 WebP。
+      </div>
+      <div id="imagePreview" class="image-preview-grid"></div>
+      <div id="uploadProgress" class="upload-progress">正在上載題目圖片……</div>
+    </div>
 
     <div class="row">
       <div>
@@ -730,6 +966,7 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
   </div>
 </section>
 
+<div id="printArea" class="print-area" aria-hidden="true"></div>
 <div class="footer">寧波公學歷史科 · DSE History Learning Database</div>
 </div>
 
@@ -741,6 +978,139 @@ const CATS = ["二十世紀初的歐洲：衝突與和平", "兩戰期間及集�
 const AI_SOURCES = ["ChatGPT", "Gemini", "Claude", "DeepSeek", "Grok", "Microsoft Copilot", "豆包", "千問", "Kimi", "Perplexity", "騰訊元寶", "其他"];
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const QUESTION_IMAGE_BUCKET = "question-images";
+let selectedQuestionImages = [];
+
+function sanitizeFilename(name) {
+  const dot = name.lastIndexOf(".");
+  const ext = dot >= 0 ? name.slice(dot).toLowerCase() : "";
+  const base = dot >= 0 ? name.slice(0, dot) : name;
+
+  const safeBase = base
+    .normalize("NFKD")
+    .replace(/[^\w\u4e00-\u9fff-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 70) || "image";
+
+  return safeBase + ext;
+}
+
+function renderImagePreview() {
+  const box = document.getElementById("imagePreview");
+  box.innerHTML = "";
+
+  selectedQuestionImages.forEach(file => {
+    const item = document.createElement("div");
+    item.className = "image-preview-item";
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.alt = file.name;
+
+    const name = document.createElement("div");
+    name.className = "img-name";
+    name.textContent = file.name;
+
+    item.appendChild(img);
+    item.appendChild(name);
+    box.appendChild(item);
+  });
+}
+
+document.getElementById("questionImages").addEventListener("change", e => {
+  const files = [...e.target.files];
+
+  if(files.length > 6) {
+    alert("每次最多上載 6 張圖片。");
+    e.target.value = "";
+    selectedQuestionImages = [];
+    renderImagePreview();
+    return;
+  }
+
+  for(const file of files) {
+    if(!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+      alert("只支援 JPG、PNG 或 WebP 圖片。");
+      e.target.value = "";
+      selectedQuestionImages = [];
+      renderImagePreview();
+      return;
+    }
+
+    if(file.size > 8 * 1024 * 1024) {
+      alert(`圖片「${file.name}」超過 8 MB。`);
+      e.target.value = "";
+      selectedQuestionImages = [];
+      renderImagePreview();
+      return;
+    }
+  }
+
+  selectedQuestionImages = files;
+  renderImagePreview();
+});
+
+async function uploadQuestionImages() {
+  if(!selectedQuestionImages.length) return [];
+
+  const uploaded = [];
+
+  for(let i = 0; i < selectedQuestionImages.length; i++) {
+    const file = selectedQuestionImages[i];
+    const random = crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const path = `submissions/${random}-${sanitizeFilename(file.name)}`;
+
+    const { error: uploadError } = await sb.storage
+      .from(QUESTION_IMAGE_BUCKET)
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type
+      });
+
+    if(uploadError) throw uploadError;
+
+    const { data } = sb.storage
+      .from(QUESTION_IMAGE_BUCKET)
+      .getPublicUrl(path);
+
+    uploaded.push({
+      path,
+      url: data.publicUrl,
+      name: file.name
+    });
+  }
+
+  return uploaded;
+}
+
+function questionImagesHtml(images) {
+  if(!Array.isArray(images) || !images.length) return "";
+
+  return `
+    <div class="question-image-grid">
+      ${images.map((img, i) => `
+        <div class="question-image-item">
+          <a href="${escapeHtml(img.url)}" target="_blank" rel="noopener">
+            <img
+              src="${escapeHtml(img.url)}"
+              alt="題目圖片 ${i + 1}"
+              loading="lazy"
+              crossorigin="anonymous"
+            >
+          </a>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+
 document.getElementById("cloudStatus").textContent = "Online Database｜Supabase";
 
 const catSel = document.getElementById("category");
@@ -836,6 +1206,7 @@ window.openCat = async function(c) {
     <div class="q">
       <div class="meta">${escapeHtml(x.qtype)}｜${escapeHtml(x.author)}｜AI：${escapeHtml(x.source)}</div>
       <div class="qt">${escapeHtml(x.question)}</div>
+      ${questionImagesHtml(x.question_images)}
       <div class="ans">${x.answer_html}</div>
     </div>
   `).join("") : '<div class="empty">這個主題暫時未有答案。</div>';
@@ -965,6 +1336,8 @@ async function captureCurrentAnswerPage() {
       <span class="student-mark">我的臨時標示</span>
     `;
 
+    const questionImages = card.querySelector(".question-image-grid")?.cloneNode(true) || null;
+
     const answer = document.createElement("div");
     answer.className = "capture-answer";
     answer.innerHTML = card.querySelector(".ans")?.innerHTML || "";
@@ -979,6 +1352,7 @@ async function captureCurrentAnswerPage() {
     block.appendChild(title);
     block.appendChild(meta);
     block.appendChild(legend);
+    if(questionImages) block.appendChild(questionImages);
     block.appendChild(answer);
     stage.appendChild(block);
   });
@@ -1011,6 +1385,101 @@ async function captureCurrentAnswerPage() {
     stage.remove();
   }
 }
+
+
+
+function buildPrintArea() {
+  const questions = document.getElementById("questions");
+  const printArea = document.getElementById("printArea");
+
+  printArea.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "print-doc-header";
+  header.innerHTML = `
+    <div class="print-doc-title">寧波公學歷史科 DSE 資料庫</div>
+    <div class="print-doc-subtitle">History DSE Model Answer · PEEL Analysis</div>
+  `;
+  printArea.appendChild(header);
+
+  const legend = document.createElement("div");
+  legend.className = "print-legend";
+  legend.innerHTML = `
+    <span class="p">Point 論點</span>
+    <span class="ev">Evidence 史實</span>
+    <span class="ex">Explanation 解釋</span>
+    <span class="ln">Link 扣題</span>
+    <span class="student-mark">我的臨時標示</span>
+  `;
+  printArea.appendChild(legend);
+
+  const cards = [...questions.querySelectorAll(".q")];
+
+  cards.forEach(card => {
+    const wrapper = document.createElement("section");
+    wrapper.className = "print-card";
+
+    const q = document.createElement("div");
+    q.className = "print-question";
+    q.textContent = card.querySelector(".qt")?.textContent || "";
+
+    const meta = document.createElement("div");
+    meta.className = "print-meta";
+    meta.textContent = card.querySelector(".meta")?.textContent || "";
+
+    const imageEls = [...card.querySelectorAll(".question-image-grid img")];
+    let printImages = null;
+
+    if(imageEls.length) {
+      printImages = document.createElement("div");
+      printImages.className = "print-question-images";
+
+      imageEls.forEach(sourceImg => {
+        const img = document.createElement("img");
+        img.src = sourceImg.src;
+        img.alt = sourceImg.alt || "題目圖片";
+        img.crossOrigin = "anonymous";
+        printImages.appendChild(img);
+      });
+    }
+
+    const answer = document.createElement("div");
+    answer.className = "print-answer";
+    answer.innerHTML = card.querySelector(".ans")?.innerHTML || "";
+
+    // 保留目前 PEEL ON/OFF 狀態。
+    Object.entries(peelVisibility).forEach(([cls, visible]) => {
+      answer.querySelectorAll(`span.${cls}`).forEach(el => {
+        el.classList.toggle("peel-hidden", !visible);
+      });
+    });
+
+    wrapper.appendChild(q);
+    wrapper.appendChild(meta);
+    if(printImages) wrapper.appendChild(printImages);
+    wrapper.appendChild(answer);
+    printArea.appendChild(wrapper);
+  });
+
+  const footer = document.createElement("div");
+  footer.className = "print-footer";
+  footer.textContent = "寧波公學歷史科 DSE 資料庫";
+  printArea.appendChild(footer);
+}
+
+document.getElementById("exportPdf").onclick = () => {
+  const questions = document.getElementById("questions");
+
+  if(!questions || !questions.textContent.trim()) {
+    alert("目前沒有可輸出的答案。");
+    return;
+  }
+
+  buildPrintArea();
+
+  // Browser Print-to-PDF keeps text as vector text instead of rasterizing it.
+  window.print();
+};
 
 
 document.getElementById("captureShare").onclick = async () => {
@@ -1170,6 +1639,23 @@ document.getElementById("send").onclick = async () => {
   if(!editor.querySelector("span.p,span.ev,span.ex,span.ln"))
     return alert("請先完成 PEEL 標示。");
 
+  const progress = document.getElementById("uploadProgress");
+  const sendBtn = document.getElementById("send");
+
+  progress.style.display = selectedQuestionImages.length ? "block" : "none";
+  sendBtn.disabled = true;
+
+  let uploadedImages = [];
+
+  try {
+    uploadedImages = await uploadQuestionImages();
+  } catch(e) {
+    progress.style.display = "none";
+    sendBtn.disabled = false;
+    alert("題目圖片上載失敗：" + e.message);
+    return;
+  }
+
   const payload = {
     category: catSel.value,
     qtype: document.getElementById("type").value,
@@ -1177,14 +1663,26 @@ document.getElementById("send").onclick = async () => {
     author: document.getElementById("author").value.trim() || "匿名同學",
     source: getAiSource(),
     status: "pending",
+    question_images: uploadedImages,
     answer_html: normalizedEditorHtml(editor)
   };
 
   const {error} = await sb.from("answers").insert(payload);
-  if(error) return alert("提交失敗：" + error.message);
+
+  progress.style.display = "none";
+  sendBtn.disabled = false;
+
+  if(error) {
+    alert("提交失敗：" + error.message);
+    return;
+  }
 
   alert("已上載至雲端，等待老師審核。");
+
   document.getElementById("raw").value = "";
+  document.getElementById("questionImages").value = "";
+  selectedQuestionImages = [];
+  renderImagePreview();
   editor.innerHTML = "";
 };
 
@@ -1238,6 +1736,7 @@ async function renderReview() {
     <div class="q" data-id="${x.id}">
       <div class="meta">${escapeHtml(x.category)}｜${escapeHtml(x.author)}｜AI：${escapeHtml(x.source)}</div>
       <div class="qt">${escapeHtml(x.question)}</div>
+      ${questionImagesHtml(x.question_images)}
       <div class="ans">${x.answer_html}</div>
       <br>
       <button class="btn primary ok">批准加入答題庫</button>
@@ -1276,5 +1775,55 @@ document.getElementById("copy").onclick = async () => {
 
 home();
 </script>
+
+<!--
+=========================================================
+DBQ 題目圖片功能：Supabase 只需額外執行一次以下 SQL
+=========================================================
+
+alter table public.answers
+add column if not exists question_images jsonb not null default '[]'::jsonb;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'question-images',
+  'question-images',
+  true,
+  8388608,
+  array['image/jpeg','image/png','image/webp']
+)
+on conflict (id) do update
+set
+  public = true,
+  file_size_limit = 8388608,
+  allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+
+drop policy if exists "public read question images" on storage.objects;
+create policy "public read question images"
+on storage.objects
+for select
+to anon, authenticated
+using (bucket_id = 'question-images');
+
+drop policy if exists "public upload question images" on storage.objects;
+create policy "public upload question images"
+on storage.objects
+for insert
+to anon, authenticated
+with check (
+  bucket_id = 'question-images'
+  and (storage.foldername(name))[1] = 'submissions'
+);
+
+drop policy if exists "teacher delete question images" on storage.objects;
+create policy "teacher delete question images"
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'question-images');
+
+=========================================================
+-->
+
 </body>
 </html>
