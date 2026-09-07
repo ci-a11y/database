@@ -67,7 +67,7 @@ code{background:#f0f2f3;padding:2px 5px;border-radius:5px}
 
 <section id="db" class="panel active">
   <div id="setupNotice" class="setup" style="display:none">
-    尚未設定 Supabase。請在本 HTML 最底部的 <code>SUPABASE_URL</code>、<code>SUPABASE_ANON_KEY</code>、<code>TEACHER_EMAIL</code> 三個位置填入資料。
+    尚未設定 Supabase。請在本 HTML 最底部填入 <code>SUPABASE_URL</code> 與 <code>SUPABASE_ANON_KEY</code>。
   </div>
 
   <div id="home">
@@ -198,11 +198,10 @@ code{background:#f0f2f3;padding:2px 5px;border-radius:5px}
 
 <script>
 /* =========================================================
-   只需要改以下 3 行，整個網站仍然只有一個 HTML
+   Supabase 已填入；日後如更換 Project，只需改以下 2 行
    ========================================================= */
-const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
-const TEACHER_EMAIL = "PASTE_YOUR_TEACHER_EMAIL_HERE";
+const SUPABASE_URL = "https://jhzupphwzslvsjggaszd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_WSKyQjSlhnp5glgtvlR8Eg_t45-jQ_6";
 
 /* ========================================================= */
 
@@ -542,7 +541,7 @@ if (isConfigured()) {
   home();
 } else {
   document.getElementById("catGrid").innerHTML =
-    '<div class="empty">尚未設定 Supabase。填好 HTML 底部的三項設定後即可使用。</div>';
+    '<div class="empty">尚未設定 Supabase。填好 HTML 底部的兩項設定後即可使用。</div>';
 }
 </script>
 
@@ -550,7 +549,12 @@ if (isConfigured()) {
 =========================================================
 SUPABASE 首次設定 SQL
 只需要在 Supabase SQL Editor 執行一次。
-記得把 YOUR_TEACHER_EMAIL 改成你的教師電郵。
+
+設計：
+- 未登入學生：可讀取 approved、可提交 pending
+- 已登入帳戶：可讀取 pending、批准、刪除
+- 建議在 Supabase Authentication 關閉公開註冊，
+  並只由你手動建立教師帳戶
 =========================================================
 
 create extension if not exists pgcrypto;
@@ -575,14 +579,15 @@ drop policy if exists "public read approved answers" on public.answers;
 create policy "public read approved answers"
 on public.answers
 for select
-to anon, authenticated
-using (
-  status = 'approved'
-  OR (
-    auth.role() = 'authenticated'
-    and auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
-  )
-);
+to anon
+using (status = 'approved');
+
+drop policy if exists "authenticated read all answers" on public.answers;
+create policy "authenticated read all answers"
+on public.answers
+for select
+to authenticated
+using (true);
 
 drop policy if exists "public insert pending answers" on public.answers;
 create policy "public insert pending answers"
@@ -591,26 +596,20 @@ for insert
 to anon, authenticated
 with check (status = 'pending');
 
-drop policy if exists "teacher update answers" on public.answers;
-create policy "teacher update answers"
+drop policy if exists "authenticated update answers" on public.answers;
+create policy "authenticated update answers"
 on public.answers
 for update
 to authenticated
-using (
-  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
-)
-with check (
-  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
-);
+using (true)
+with check (true);
 
-drop policy if exists "teacher delete answers" on public.answers;
-create policy "teacher delete answers"
+drop policy if exists "authenticated delete answers" on public.answers;
+create policy "authenticated delete answers"
 on public.answers
 for delete
 to authenticated
-using (
-  auth.jwt() ->> 'email' = 'YOUR_TEACHER_EMAIL'
-);
+using (true);
 
 create index if not exists answers_status_idx
 on public.answers(status);
