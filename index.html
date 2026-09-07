@@ -190,7 +190,14 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
 }
 .meta{font-size:12px;color:var(--muted)}
 .qt{font-weight:900;line-height:1.6;margin-top:5px}
-.ans{line-height:1.95;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.ans{
+  line-height:1.95;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed var(--line);
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
 
 .note{
   background:var(--soft-blue);
@@ -243,6 +250,49 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
   box-shadow:0 4px 10px rgba(23,76,112,.14);
 }
 
+
+.peel-workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 200px;
+  gap:14px;
+  align-items:start;
+  margin-top:10px;
+}
+.peel-main{min-width:0}
+.peel-side{
+  position:sticky;
+  top:16px;
+  align-self:start;
+  background:#f8fbfc;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  box-shadow:0 6px 18px rgba(23,52,75,.06);
+  z-index:20;
+}
+.peel-side-title{
+  font-size:13px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.peel-side .toolbar{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:7px;
+  margin:0;
+}
+.peel-side .toolbar button{
+  width:100%;
+  text-align:left;
+  padding:9px 10px;
+}
+.peel-side .tool-note{
+  margin-top:9px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.55;
+}
+
 .footer{
   margin-top:18px;
   text-align:center;
@@ -255,6 +305,24 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
   .purpose-item{grid-template-columns:44px 1fr}
   .purpose-text{grid-column:2}
   .ai-grid{grid-template-columns:repeat(2,1fr)}
+  .peel-workspace{grid-template-columns:1fr}
+  .peel-side{
+    position:sticky;
+    top:auto;
+    bottom:8px;
+    padding:8px;
+    z-index:30;
+  }
+  .peel-side-title,.peel-side .tool-note{display:none}
+  .peel-side .toolbar{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+  .peel-side .toolbar button{
+    text-align:center;
+    padding:8px 5px;
+    font-size:11px;
+  }
 }
 @media(max-width:620px){
   .app{padding:13px}
@@ -386,17 +454,26 @@ label{display:block;font-size:13px;font-weight:900;margin:12px 0 6px}
     <textarea id="raw" placeholder="請貼上完整參考答案……"></textarea>
     <button class="btn primary" id="load">進入 PEEL 標示</button>
 
-    <div class="toolbar">
-      <button class="p" data-mark="p">Point｜紅</button>
-      <button class="ev" data-mark="ev">Evidence｜黃</button>
-      <button class="ex" data-mark="ex">Explanation｜綠</button>
-      <button class="ln" data-mark="ln">Link｜粉紅</button>
-      <button id="clear">清除標示</button>
-    </div>
+    <div class="peel-workspace">
+      <div class="peel-main">
+        <div id="editor" class="editor" contenteditable="true"></div>
+        <br>
+        <button class="btn primary" id="send">提交給老師審核</button>
+      </div>
 
-    <div id="editor" class="editor" contenteditable="true"></div>
-    <br>
-    <button class="btn primary" id="send">提交給老師審核</button>
+      <aside class="peel-side">
+        <div class="peel-side-title">PEEL 標示</div>
+        <div class="toolbar">
+          <button class="p" data-mark="p">Point｜紅</button>
+          <button class="ev" data-mark="ev">Evidence｜黃</button>
+          <button class="ex" data-mark="ex">Explanation｜綠</button>
+          <button class="ln" data-mark="ln">Link｜粉紅</button>
+          <button id="removeMark">取消所選標示</button>
+          <button id="clear">清除全部標示</button>
+        </div>
+        <div class="tool-note">先選取文字，再按相應顏色。向下捲動時，工具列會保持可見。</div>
+      </aside>
+    </div>
   </div>
 </section>
 
@@ -584,8 +661,10 @@ document.getElementById("searchBtn").onclick = () =>
   renderCats(document.getElementById("search").value);
 
 document.getElementById("load").onclick = () => {
-  document.getElementById("editor").textContent =
-    document.getElementById("raw").value;
+  const raw = document.getElementById("raw").value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+  document.getElementById("editor").textContent = raw;
 };
 
 function markSelection(cls) {
@@ -612,6 +691,41 @@ document.querySelectorAll("[data-mark]").forEach(b =>
   b.onclick = () => markSelection(b.dataset.mark)
 );
 
+document.getElementById("removeMark").onclick = () => {
+  const sel = window.getSelection();
+
+  if(!sel.rangeCount || sel.isCollapsed) {
+    alert("請先選取需要取消標示的文字。");
+    return;
+  }
+
+  const range = sel.getRangeAt(0);
+  const editor = document.getElementById("editor");
+
+  if(!editor.contains(range.commonAncestorContainer)) {
+    alert("請在答案標示區內選取文字。");
+    return;
+  }
+
+  const marks = [...editor.querySelectorAll("span.p,span.ev,span.ex,span.ln")];
+  let changed = false;
+
+  marks.forEach(span => {
+    try {
+      if(range.intersectsNode(span)) {
+        const parent = span.parentNode;
+        while(span.firstChild) parent.insertBefore(span.firstChild, span);
+        parent.removeChild(span);
+        parent.normalize();
+        changed = true;
+      }
+    } catch(e) {}
+  });
+
+  sel.removeAllRanges();
+  if(!changed) alert("所選文字沒有 PEEL 標示。");
+};
+
 document.getElementById("clear").onclick = () => {
   const editor = document.getElementById("editor");
   editor.querySelectorAll("span.p,span.ev,span.ex,span.ln").forEach(s => {
@@ -621,6 +735,32 @@ document.getElementById("clear").onclick = () => {
     p.normalize();
   });
 };
+
+function normalizedEditorHtml(editor) {
+  const clone = editor.cloneNode(true);
+
+  clone.querySelectorAll("br").forEach(br => {
+    br.replaceWith(document.createTextNode("\n"));
+  });
+
+  clone.querySelectorAll("div").forEach(div => {
+    const frag = document.createDocumentFragment();
+    while(div.firstChild) frag.appendChild(div.firstChild);
+    frag.appendChild(document.createTextNode("\n"));
+    div.replaceWith(frag);
+  });
+
+  clone.querySelectorAll("p").forEach(p => {
+    const frag = document.createDocumentFragment();
+    while(p.firstChild) frag.appendChild(p.firstChild);
+    frag.appendChild(document.createTextNode("\n\n"));
+    p.replaceWith(frag);
+  });
+
+  return clone.innerHTML
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 document.getElementById("send").onclick = async () => {
   const editor = document.getElementById("editor");
@@ -635,7 +775,7 @@ document.getElementById("send").onclick = async () => {
     author: document.getElementById("author").value.trim() || "匿名同學",
     source: getAiSource(),
     status: "pending",
-    answer_html: editor.innerHTML
+    answer_html: normalizedEditorHtml(editor)
   };
 
   const {error} = await sb.from("answers").insert(payload);
